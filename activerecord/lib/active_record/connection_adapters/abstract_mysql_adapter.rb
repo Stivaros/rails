@@ -739,8 +739,16 @@ module ActiveRecord
       # QUOTING ==================================================
       #++
 
+      # Bytes rewritten by the MySQL escape functions. With +NO_BACKSLASH_ESCAPES+
+      # only the single quote is rewritten, so this set covers both modes.
+      ESCAPED_BYTES = /[\0\n\r\\'"\x1A]/ # :nodoc:
+      private_constant :ESCAPED_BYTES
+
       # Quotes strings for use in SQL input.
       def quote_string(string)
+        # Nothing to escape, so there is no need to check out the raw connection.
+        return string if String === string && string.ascii_only? && !string.match?(ESCAPED_BYTES)
+
         with_raw_connection(allow_retry: true, materialize_transactions: false) do |connection|
           connection.escape(string)
         end

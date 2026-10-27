@@ -107,6 +107,18 @@ class TrilogyAdapterTest < ActiveRecord::TrilogyTestCase
     assert_equal "\\\"test\\\"", @conn.quote_string(%("test"))
   end
 
+  test "#quote_string escapes every ascii byte with NO_BACKSLASH_ESCAPES" do
+    old_sql_mode = @conn.select_value("SELECT @@SESSION.sql_mode")
+    @conn.execute("SET @@SESSION.sql_mode='#{old_sql_mode},NO_BACKSLASH_ESCAPES'")
+
+    128.times do |byte|
+      char = byte.chr
+      assert_equal "a#{char == "'" ? "''" : char}b", @conn.quote_string("a#{char}b")
+    end
+  ensure
+    @conn.execute("SET @@SESSION.sql_mode='#{old_sql_mode}'")
+  end
+
   test "#quoted_true answers TRUE" do
     assert_equal "TRUE", @conn.quoted_true
   end
