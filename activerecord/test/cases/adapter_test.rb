@@ -829,7 +829,7 @@ module ActiveRecord
 
         # Quote string will not verify a broken connection (although it may
         # reconnect in some cases)
-        Post.lease_connection.quote_string("")
+        Post.lease_connection.quote_string("'")
 
         # Because the connection hasn't been verified since checkout,
         # and the query cannot safely be retried, the connection will be
