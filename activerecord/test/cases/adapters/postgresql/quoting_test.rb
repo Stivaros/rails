@@ -62,6 +62,32 @@ module ActiveRecord
           assert_equal "''", @conn.quote_string("'")
         end
 
+        def test_quote_string_escapes_every_ascii_byte
+          (1..127).each do |byte|
+            char = byte.chr
+            assert_equal "a#{char == "'" ? "''" : char}b", @conn.quote_string("a#{char}b")
+          end
+        end
+
+        def test_quote_string_escapes_backslashes_without_standard_conforming_strings
+          @conn.execute("SET standard_conforming_strings = off")
+
+          assert_equal "a\\\\b", @conn.quote_string("a\\b")
+          assert_equal "plain", @conn.quote_string("plain")
+        ensure
+          @conn.execute("SET standard_conforming_strings = on")
+        end
+
+        def test_quote_string_raises_on_a_null_byte
+          assert_raises(ArgumentError) { @conn.quote_string("a\0b") }
+        end
+
+        def test_quote_string_without_anything_to_escape_does_not_use_the_connection
+          assert_not_called(@conn, :with_raw_connection) do
+            assert_equal "Bambi and Thumper", @conn.quote_string("Bambi and Thumper")
+          end
+        end
+
         def test_quote_column_name
           [@conn, @conn.class].each do |adapter|
             assert_equal '"foo"', adapter.quote_column_name("foo")

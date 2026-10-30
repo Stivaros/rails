@@ -124,8 +124,17 @@ module ActiveRecord
           end
         end
 
+        # Bytes that the PostgreSQL escape function may rewrite. The backslash is
+        # only rewritten with +standard_conforming_strings+ off. A NUL byte makes
+        # the driver raise.
+        ESCAPED_BYTES = /[\0'\\]/ # :nodoc:
+        private_constant :ESCAPED_BYTES
+
         # Quotes strings for use in SQL input.
         def quote_string(s) # :nodoc:
+          # Nothing to escape, so there is no need to check out the raw connection.
+          return s if String === s && s.ascii_only? && !s.match?(ESCAPED_BYTES)
+
           with_raw_connection(allow_retry: true, materialize_transactions: false) do |connection|
             connection.escape(s)
           end
